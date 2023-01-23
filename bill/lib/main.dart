@@ -1,112 +1,57 @@
-import 'dart:io';
-
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+
+import 'camera/camera_function.dart';
+
+late CameraDescription _firstCamera;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final cameras = await availableCameras();
-  final firstCamera = cameras.first;
+  _firstCamera = cameras.first;
 
-  runApp(
-    MaterialApp(
+  runApp(const App());
+}
+
+class App extends StatelessWidget {
+  const App({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
       title: 'bill',
       theme: ThemeData(
-        brightness: Brightness.light,
         useMaterial3: true,
       ),
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        useMaterial3: true,
-      ),
-      themeMode: ThemeMode.dark,
-      home: TakePicture(
-        camera: firstCamera,
-      ),
-    ),
-  );
-}
-
-class TakePicture extends StatefulWidget {
-  const TakePicture({
-    Key? key,
-    required this.camera,
-  }) : super(key: key);
-
-  final CameraDescription camera;
-
-  @override
-  TakePictureState createState() => TakePictureState();
-}
-
-class TakePictureState extends State<TakePicture> {
-  late CameraController _controller;
-  late Future<void> _initializeControllerFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = CameraController(
-      widget.camera,
-      ResolutionPreset.max,
+      home: const Home(),
+      // home: UtilizeCamera(
+      //   camera: firstCamera,
+      // ),
     );
-
-    _initializeControllerFuture = _controller.initialize();
   }
+}
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+class Home extends StatelessWidget {
+  const Home({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Take a picture')),
-      body: FutureBuilder<void>(
-        future: _initializeControllerFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            return CameraPreview(_controller);
-          } else {
-            return const Center(child: CircularProgressIndicator());
-          }
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          try {
-            await _initializeControllerFuture;
-            final image = await _controller.takePicture();
-            if (!mounted) return;
-            await Navigator.of(context).push(
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
               MaterialPageRoute(
-                builder: (context) => DisplayPictureScreen(
-                  imagePath: image.path,
+                builder: (context) => Camera(
+                  camera: _firstCamera,
                 ),
               ),
             );
-          } catch (e) {
-            print(e);
-          }
-        },
-        child: const Icon(Icons.camera_alt),
+          },
+          child: const Text('Scan Receipt'),
+        ),
       ),
-    );
-  }
-}
-
-class DisplayPictureScreen extends StatelessWidget {
-  final String imagePath;
-
-  const DisplayPictureScreen({super.key, required this.imagePath});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Display the Picture')),
-      body: Image.file(File(imagePath)),
     );
   }
 }
