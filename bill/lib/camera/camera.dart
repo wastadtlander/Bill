@@ -1,6 +1,7 @@
-import 'package:bill/main.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+
+import 'display.dart';
 
 class Camera extends StatefulWidget {
   const Camera({
@@ -41,7 +42,10 @@ class CameraState extends State<Camera> {
       future: _initializeControllerFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
-          return CameraWrapper(controller: _controller);
+          return CameraWrapper(
+            controller: _controller,
+            initializeControllerFuture: _initializeControllerFuture,
+          );
         } else {
           return const Center(child: CircularProgressIndicator());
         }
@@ -52,37 +56,45 @@ class CameraState extends State<Camera> {
 
 class CameraWrapper extends StatelessWidget {
   const CameraWrapper({
-    Key? key,
-    required CameraController controller,
-  })  : _controller = controller,
-        super(key: key);
+    super.key,
+    required this.controller,
+    required this.initializeControllerFuture,
+  });
 
-  final CameraController _controller;
+  final CameraController controller;
+  final Future<void> initializeControllerFuture;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(),
-      body: Container(
-        padding: const EdgeInsets.all(8.0),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(8.0),
-            topRight: Radius.circular(8.0),
-            bottomRight: Radius.circular(8.0),
-            bottomLeft: Radius.circular(8.0),
+      body: Center(
+        child: Container(
+          padding: const EdgeInsets.all(8.0),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.all(Radius.circular(8.0)),
+            child: CameraPreview(controller),
           ),
-          child: CameraPreview(_controller),
         ),
       ),
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         child: Container(height: 50.0),
       ),
-      floatingActionButton: const FloatingActionButton(
-        onPressed: null,
-        shape: CircleBorder(),
-        child: Icon(Icons.camera_alt),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await initializeControllerFuture;
+          final image = await controller.takePicture();
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => Display(
+                image: image.path,
+              ),
+            ),
+          );
+        },
+        shape: const CircleBorder(),
+        child: const Icon(Icons.camera_alt),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
